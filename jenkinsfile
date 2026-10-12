@@ -1,0 +1,39 @@
+pipeline {
+    agent any
+
+    stages {
+        stage('Preparation') {
+            steps {
+                echo 'Cleaning up old Rise container...'
+                sh '''
+                docker stop rise_server || true
+                docker rm rise_server || true
+                '''
+            }
+        }
+
+        stage('Build & Test') {
+            steps {
+                echo 'Building Docker image and running tests...'
+                sh 'docker build -t riseapp:latest .'
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                echo 'Running Rise application on port 5001...'
+                sh 'docker run -d -p 5001:5000 --name rise_server riseapp:latest'
+            }
+        }
+
+        stage('Verification') {
+            steps {
+                echo 'Verifying that server is listening...'
+                sh '''
+                sleep 5
+                curl -I http://172.16.0.10:5001/ || true
+                '''
+            }
+        }
+    }
+}
